@@ -1,6 +1,6 @@
 'use strict';
-var inputFile = 'head3k.txt';
-var outDir = 'out';
+var inputFile = process.argv[2] || 'head1k.txt';
+var outDir = process.argv[3] || 'out';
 
 ////////////////////////////////////
 
