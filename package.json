@@ -9,7 +9,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "fs": "0.0.2",
     "split": "^0.3.2",
     "through": "^2.3.6"
   }
