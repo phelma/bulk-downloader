@@ -1,11 +1,12 @@
 'use strict';
 var inputFile = process.argv[2] || 'head1k.txt';
 var outDir = process.argv[3] || 'out';
+var maxParalell = process.argv[4] || 10000;
 
 ////////////////////////////////////
-
 var fs = require('fs');
 var http = require('http');
+var request = require('request');
 var through = require('through');
 var split = require('split');
 var url = require('url');
@@ -15,13 +16,12 @@ var url = require('url');
 
 var count = 0;
 var paralell = 0;
-var maxParalell = 100;
 
 var splitTabs = through(function(buf) {
 	var item = buf.toString().split('\t');
 	item.push(count);
 	this.queue(item);
-	count ++;
+	count++;
 });
 
 var downloadStream = through(function(item) {
@@ -33,9 +33,31 @@ var downloadStream = through(function(item) {
 	try {
 		if (url.parse(item[1]).protocol === 'http:') {
 			var fileName = item[0] || Date.now() + '.jpg';
-			paralell ++;
+			paralell++;
 			console.log('paralell = ' + paralell);
-			var request = http.get(item[1], function(resp) {
+
+			var filePath = __dirname + '/' + outDir + '/' + fileName + '.jpg';
+			var file = fs.createWriteStream(filePath);
+			file.on('end', function() {
+				console.log(item[2] + '--DONE--');
+				paralell --;
+				file.end();
+			});
+
+			request
+				.get(item[1])
+				.on('response', function(resp) {
+					console.log('got' + resp.statusCode);
+				})
+				.on('error', function(err) {
+					console.log(err);
+				})
+				.pipe(file);
+
+
+
+			/*
+			var httpGet = http.get(item[1], function(resp) {
 				if (resp.statusCode === 200) {
 					console.log(item[2] + " got 200 for " + item[1]);
 					var filePath = __dirname + '/' + outDir + '/' + fileName + '.jpg';
@@ -54,6 +76,8 @@ var downloadStream = through(function(item) {
 				console.log(item[2] + " Got error: " + e.message);
 				paralell --;
 			});
+			*/
+
 		} else {
 			console.log(item[2] + ' Not http so skipping: ' + item);
 		}
@@ -63,22 +87,6 @@ var downloadStream = through(function(item) {
 }, function() {
 	console.log('downloadStream end');
 });
-
-// var fileWrite = through(function(buf) {
-// 	var file = fs.createWriteStream(__dirname + '/' + outDir + '/' + buf[0] + '.jpg')
-// 	buf[1].pipe(file);
-// });
-
-
-// var downloadFile = function(url, fileName) {
-// 	var fileName = fileName || Date.now() + '.jpg';
-// 	var request = http.get(url, function(resp) {
-// 		if (resp.statusCode = 200) {
-// 			var file = fs.createWriteStream(__dirname + '/' + outDir + '/' + fileName + '.jpg');
-// 			resp.pipe(file);
-// 		}
-// 	});
-// };
 
 var fileStream = fs.createReadStream(__dirname + '/' + inputFile);
 fileStream
