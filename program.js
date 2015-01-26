@@ -1,7 +1,7 @@
 'use strict';
 var inputFile = process.argv[2] || 'head1k.txt';
 var outDir = process.argv[3] || 'out';
-var maxParalell = process.argv[4] || 10000;
+var maxParalell = process.argv[4] || 10;
 
 ////////////////////////////////////
 var fs = require('fs');
@@ -10,6 +10,10 @@ var request = require('request');
 var through = require('through');
 var split = require('split');
 var url = require('url');
+var downloads = {
+	completed: [],
+	failed: []
+};
 
 //example
 // downloadFile('http://i.imgur.com/tYPQKZJ.jpg', 'file1.jpg');
@@ -25,71 +29,51 @@ var splitTabs = through(function(buf) {
 });
 
 var downloadStream = through(function(item) {
-	if (!this.paused && paralell >= maxParalell) {
+	if (!this.paused && paralell >= maxParalell - 1) {
 		this.pause();
 	} else if (this.paused && paralell < maxParalell) {
 		this.resume();
 	}
 	try {
-		if (url.parse(item[1]).protocol === 'http:') {
-			var fileName = item[0] || Date.now() + '.jpg';
-			paralell++;
-			console.log('paralell = ' + paralell);
+		var fileName = item[0] || Date.now() + '.jpg';
+		paralell++;
+		console.log('paralell = ' + paralell);
 
-			var filePath = __dirname + '/' + outDir + '/' + fileName + '.jpg';
-			var file = fs.createWriteStream(filePath);
-			file.on('end', function() {
-				console.log(item[2] + '--DONE--');
-				paralell --;
-				file.end();
-			});
+		var filePath = __dirname + '/' + outDir + '/' + fileName + '.jpg';
+		var file = fs.createWriteStream(filePath);
+		file.on('finish', function() {
+			console.log('#' + item[2] + ' Complete');
+			downloads.completed.push(item);
+			paralell--;
+			file.end();
+		});
 
-			request
-				.get(item[1])
-				.on('response', function(resp) {
-					console.log('got' + resp.statusCode);
-				})
-				.on('error', function(err) {
-					console.log(err);
-				})
-				.pipe(file);
-
-
-
-			/*
-			var httpGet = http.get(item[1], function(resp) {
-				if (resp.statusCode === 200) {
-					console.log(item[2] + " got 200 for " + item[1]);
-					var filePath = __dirname + '/' + outDir + '/' + fileName + '.jpg';
-					var file = fs.createWriteStream(filePath);
-					resp.pipe(file);
-					file.on('end', function(){
-						console.log(item[2] + '--DONE--');
-						file.end();
-					});
-					paralell --;
-				} else {
-					console.log(item[2] + ' got status ' + resp.statusCode);
-					paralell --;
-				}
-			}).on('error', function(e) {
-				console.log(item[2] + " Got error: " + e.message);
-				paralell --;
-			});
-			*/
-
-		} else {
-			console.log(item[2] + ' Not http so skipping: ' + item);
-		}
-	} catch (e) {
-		console.log(item[2] + ' Got error: ' + e.message);
+		request
+			.get(item[1])
+			.on('response', function(resp) {
+				console.log('#' + item[2] + ' response: ' + resp.statusCode);
+			})
+			.on('error', function(err) {
+				console.log('#' + item[2] + ' Request error:', err);
+			})
+			.pipe(file);
+	} catch (error) {
+		console.log('#' + item[2] + ' Got error: ' + error.message);
+		downloads.failed.push({
+			'item': item,
+			'error': error
+		});
 	}
 }, function() {
 	console.log('downloadStream end');
+	console.log('---------------------------------');
+	console.log('Completed ' + downloads.completed.length + ' of ' + count + ' downloads');
+	console.log('with ' + downloads.failed.length + ' failures.');
+	console.log('---------------------------------');
 });
 
 var fileStream = fs.createReadStream(__dirname + '/' + inputFile);
 fileStream
-	.pipe(split())
-	.pipe(splitTabs)
-	.pipe(downloadStream);
+	.pipe(split()) // Split file into rows
+	.pipe(splitTabs) // Split each row into a array items
+	.pipe(downloadStream); // Download each item
