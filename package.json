@@ -12,6 +12,7 @@
     "longjohn": "^0.2.4",
     "request": "^2.51.0",
     "split": "^0.3.2",
-    "through": "^2.3.6"
+    "through": "^2.3.6",
+    "through2": "^0.6.3"
   }
 }

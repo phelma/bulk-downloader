@@ -1,23 +1,47 @@
 'use strict';
-var fs      = require('fs'),
+var fs = require('fs'),
     request = require('request'),
     through = require('through'),
-    split   = require('split'),
-    urlList = 'https://gist.githubusercontent.com/phelma/e1558aeb181c0cfe47b8/raw/cc5e667277308fda408f6af1404bc2d322b5186c/images.txt';
+    split = require('split');
+// var urlList = 'https://raw.githubusercontent.com/phelma/bulk-downloader/master/head100.txt';
+var urlList = 'https://raw.githubusercontent.com/phelma/bulk-downloader/master/head1k.txt';
+// var urlList = 'https://raw.githubusercontent.com/phelma/bulk-downloader/master/head10k.txt';
+// var urlList = 'https://raw.githubusercontent.com/phelma/bulk-downloader/master/head100k.txt';
+
+var requestLimit = 100,
+    activeRequests = 0;
 
 var splitByTab = through(function(buf) {
     var item = buf.toString().split('\t');
-    this.queue(item);
+    this.push(item);
 });
 
 var downloadStream = through(function(item) {
     // item is array [ filename , URL ]
+    console.log(activeRequests + ' active requests');
     if (item[1]) {
+        if (activeRequests++ >= requestLimit) {
+            splitByTab.pause();
+            this.pause();
+        }
         console.log('Requesting ' + item[1]);
         request
-            .get(item[1])
+            .get({
+                url: item[1],
+                timeout: 10000
+            })
             .on('error', function(err) {
                 console.log('\nError: ' + err.message + '\n' + item[1]);
+                if (--activeRequests < requestLimit) {
+                    this.resume();
+                    splitByTab.resume();
+                }
+            })
+            .on('response', function(response) {
+                if (--activeRequests < requestLimit) {
+                    this.resume();
+                    splitByTab.resume();
+                }
             })
             .pipe(fs.createWriteStream(__dirname + '/out/' + item[0] + '.jpg'));
     }
