@@ -7,44 +7,29 @@ var fs      = require('fs'),
     request = require('request'),
     through = require('through'),
     split   = require('split');
-    stream  = require('stream');
 
 var splitByTab = through(function(buf) {
     var item = buf.toString().split('\t');
     this.queue(item);
 });
 
-var downloadStream = new Stream;
-downloadStream.writable = true;
-downloadStream.bytes = 0;
+var downloadStream = through(function(item) {
+// item is array [ filename , URL ]
+    var fileName = item[0] + '.jpg';
+    var filePath = __dirname + '/' + outDir + '/' + fileName + '.jpg';
+    var file = fs.createWriteStream(filePath);
+    file.on('finish', function() {
+        console.log(item[0] + ' Complete');
+        file.end();
+    });
 
-downloadStream.write = function(buf){
-    downloadStream.bytes += buf.length;
-}
-
-downloadStream.end = function(buf){
-    if (buf.length) {
-
-    }
-}
-
-// var downloadStream = through(function(item) {
-// // item is array [ filename , URL ]
-//     var fileName = item[0] + '.jpg';
-//     var filePath = __dirname + '/' + outDir + '/' + fileName + '.jpg';
-//     var file = fs.createWriteStream(filePath);
-//     file.on('finish', function() {
-//         console.log(item[0] + ' Complete');
-//         file.end();
-//     });
-
-//     request
-//         .get(item[1])
-//         .on('error', function(err) {
-//             console.log(err);
-//         })
-//         .pipe(file);
-// });
+    request
+        .get(item[1])
+        .on('error', function(err) {
+            console.log(err);
+        })
+        .pipe(file);
+});
 
 request
     .get(urlList)
