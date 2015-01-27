@@ -3,13 +3,14 @@ var fs = require('fs'),
     request = require('request'),
     through = require('through'),
     split = require('split');
-// var urlList = 'https://raw.githubusercontent.com/phelma/bulk-downloader/master/head100.txt';
-var urlList = 'https://raw.githubusercontent.com/phelma/bulk-downloader/master/head1k.txt';
-// var urlList = 'https://raw.githubusercontent.com/phelma/bulk-downloader/master/head10k.txt';
-// var urlList = 'https://raw.githubusercontent.com/phelma/bulk-downloader/master/head100k.txt';
+    // var urlList = 'https://raw.githubusercontent.com/phelma/bulk-downloader/master/head100.txt';
+    // var urlList = 'https://raw.githubusercontent.com/phelma/bulk-downloader/master/head1k.txt';
+    var urlList = 'https://raw.githubusercontent.com/phelma/bulk-downloader/master/head10k.txt';
+    // var urlList = 'https://raw.githubusercontent.com/phelma/bulk-downloader/master/head100k.txt';
 
-var requestLimit = 100,
-    activeRequests = 0;
+var requestLimit = 20,
+    activeRequests = 0,
+    httpTimeout = 10;
 
 var splitByTab = through(function(buf) {
     var item = buf.toString().split('\t');
@@ -18,7 +19,7 @@ var splitByTab = through(function(buf) {
 
 var downloadStream = through(function(item) {
     // item is array [ filename , URL ]
-    console.log(activeRequests + ' active requests');
+    console.log(activeRequests + ' active requests\n');
     if (item[1]) {
         if (activeRequests++ >= requestLimit) {
             splitByTab.pause();
@@ -28,16 +29,17 @@ var downloadStream = through(function(item) {
         request
             .get({
                 url: item[1],
-                timeout: 10000
+                timeout: httpTimeout * 1000
             })
             .on('error', function(err) {
-                console.log('\nError: ' + err.message + '\n' + item[1]);
+                console.log('\nError: ' + err.message + '\n' + item[1] + '\n');
                 if (--activeRequests < requestLimit) {
                     this.resume();
                     splitByTab.resume();
                 }
             })
             .on('response', function(response) {
+                console.log('\nSucess: ' + item[1] + '\n');
                 if (--activeRequests < requestLimit) {
                     this.resume();
                     splitByTab.resume();
