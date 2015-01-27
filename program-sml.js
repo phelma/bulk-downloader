@@ -11,8 +11,8 @@ var urlList = 'https://raw.githubusercontent.com/phelma/bulk-downloader/master/h
 
 log.setLevel('error');
 
-var totalRequests  = process.argv[2] || 1000,
-    requestLimit   = process.argv[3] || 5,
+var totalRequests  = process.argv[2] || 100000,
+    requestLimit   = process.argv[3] || 6,
     activeRequests = 0,
     httpTimeout    = 10; // seconds
 
@@ -39,37 +39,41 @@ var downloads = {
 }
 
 var downloadStream = through(function(item) {
-    // item is array [ filename , URL ]
-    log.info(activeRequests + ' active requests');
-    if (item[1]) {
-        if (activeRequests++ >= requestLimit) {
-            splitByTab.pause();
-            this.pause();
+    try {
+        // item is array [ filename , URL ]
+        log.info(activeRequests + ' active requests');
+        if (item[1]) {
+            if (activeRequests++ >= requestLimit) {
+                splitByTab.pause();
+                this.pause();
+            }
+            downloads.total++;
+            log.info('Requesting ' + item[1]);
+            request
+                .get({
+                    url: item[1],
+                    timeout: httpTimeout * 1000
+                })
+                .on('error', function(err) {
+                    log.warn("Error: " + err.message);
+                    log.error(downloads.error.push(item) + '\t' + item[0] + '\t' + item[1]);
+                    if (--activeRequests < requestLimit) {
+                        this.resume();
+                        splitByTab.resume();
+                    }
+                })
+                .on('response', function(response) {
+                    log.info('Sucess: ' + item[0] + '.jpg' + ' <= ' + item[1]);
+                    downloads.success++;
+                    if (--activeRequests < requestLimit) {
+                        this.resume();
+                        splitByTab.resume();
+                    }
+                })
+                .pipe(fs.createWriteStream(__dirname + '/out/' + item[0] + '.jpg'));
         }
-        downloads.total++;
-        log.info('Requesting ' + item[1]);
-        request
-            .get({
-                url: item[1],
-                timeout: httpTimeout * 1000
-            })
-            .on('error', function(err) {
-                log.warn("Error: " + err.message);
-                log.error(downloads.error.push(item) + '\t' + item[0] + '\t' + item[1]);
-                if (--activeRequests < requestLimit) {
-                    this.resume();
-                    splitByTab.resume();
-                }
-            })
-            .on('response', function(response) {
-                log.info('Sucess: ' + item[0] + '.jpg' + ' <= ' + item[1]);
-                downloads.success++;
-                if (--activeRequests < requestLimit) {
-                    this.resume();
-                    splitByTab.resume();
-                }
-            })
-            .pipe(fs.createWriteStream(__dirname + '/out/' + item[0] + '.jpg'));
+    } catch (e){
+        console.log(e);
     }
 });
 
