@@ -9,7 +9,7 @@ var fs = require('fs'),
 // var urlList = 'https://raw.githubusercontent.com/phelma/bulk-downloader/master/head10k.txt';
 var urlList = 'https://raw.githubusercontent.com/phelma/bulk-downloader/master/head100k.txt';
 
-log.setLevel('error');
+log.setLevel('warn');
 
 var totalRequests  = process.argv[2] || 100000,
     requestLimit   = process.argv[3] || 6,
@@ -55,7 +55,7 @@ var downloadStream = through(function(item) {
                     timeout: httpTimeout * 1000
                 })
                 .on('error', function(err) {
-                    log.warn("Error: " + err.message);
+                    log.warn(err);
                     log.error(downloads.error.push(item) + '\t' + item[0] + '\t' + item[1]);
                     if (--activeRequests < requestLimit) {
                         this.resume();
