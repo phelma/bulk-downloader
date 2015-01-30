@@ -9,7 +9,7 @@ do
         wait   # wait all background process to finish
         NUMBER=0
     fi
-done < head100.txt
+done < head10k.txt
 wait
 
 echo "Cleaning up $(find . -type f -empty | wc -l) empty files"
