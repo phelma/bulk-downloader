@@ -1,10 +1,10 @@
 'use strict';
 
-var fs = require('fs'),
+var fs      = require('fs'),
     request = require('request'),
     through = require('through'),
-    split = require('split'),
-    log = require('loglevel'),
+    split   = require('split'),
+    log     = require('loglevel'),
 
     urlList = 'https://raw.githubusercontent.com/phelma/bulk-downloader/master/head100k.txt',
 
@@ -13,15 +13,15 @@ var fs = require('fs'),
     activeRequests = 0,
     httpTimeout    = 10, // seconds
 
-    line = 0,
+    line           = 0,
 
-    downloads = {
-        total: 0,
-        success: 0,
-        error: [],
+    downloads      = {
+        total    : 0,
+        success  : 0,
+        error    : [],
         startTime: new Date().getTime(),
-        endTime: 0,
-        duration: function() {
+        endTime  : 0,
+        duration : function() {
             return (this.endTime - this.startTime) + 'ms';
         }
     },
@@ -130,9 +130,9 @@ streamSpy   = new StreamSpy(downloadStream);
 log.setLevel('info');
 
 request
-.get(urlList) // Request the file
-.pipe(split()) // Split file into rows
-.pipe(splitByTab) // Split each row into a array items
-.pipe(downloadStream); // Download each item
+    .get(urlList) // Request the file
+    .pipe(split()) // Split file into rows
+    .pipe(splitByTab) // Split each row into a array items
+    .pipe(downloadStream); // Download each item
 
 // ++++++++ END Piping
