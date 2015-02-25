@@ -6,9 +6,9 @@ do
     #echo "FILENAME = ${FILENAME}"
     #echo "FOLDER = ${FOLDER}"
     mkdir -p "out/${FOLDER}"
-    wget --no-clobber --output-document="./out/${FOLDER}/${FILENAME}.JPEG" "$URL" --user-agent="Cyberdog/2.0 (Macintosh; 68k)" --no-verbose --timeout=2 --tries=1 &   # So `wget` runs in background
+    wget --no-clobber --output-document="./out/${FOLDER}/${FILENAME}.JPEG" "$URL" --user-agent="Cyberdog/2.0 (Macintosh; 68k)" --no-verbose --timeout=1 --tries=1 &   # So `wget` runs in background
     NUMBER=$((NUMBER + 1))
-    if [ $NUMBER -gt 25 ]
+    if [ $NUMBER -gt 50 ]
     then
         wait
         NUMBER=0
